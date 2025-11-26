@@ -27,7 +27,7 @@ Adafruit_SSD1306 display(DISPLAY_WIDTH, DISPLAY_HEIGHT, &SPI, DISPLAY_DC, DISPLA
 void setup() {
   // Start I2C BME280
   Wire.begin();
-  bme.begin(0x76);
+  bme.begin(BME280_ADDRESS_ALTERNATE);
   display.begin(SSD1306_SWITCHCAPVCC); // Start display
   // Show splash screen for 2 seconds before main loop
   display.display();
@@ -40,15 +40,15 @@ void loop() {
   display.clearDisplay();
   display.setCursor(0, 0);
   display.setTextSize(1);
-  display.setTextColor(1);
+  display.setTextColor(SSD1306_WHITE);
   // Read and display BME280 data
-  display.print("Temp: ");
+  display.print("Temperature:");
   display.print(bme.readTemperature());
   display.println(" C");
-  display.print("Pres: ");
+  display.print("Pressure   :");
   display.print(bme.readPressure() / 1000.0F);
   display.println(" kPa");
-  display.print("Humi: ");
+  display.print("Humidity   :");
   display.print(bme.readHumidity());
   display.println(" %");
   display.display();
