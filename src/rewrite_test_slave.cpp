@@ -9,19 +9,20 @@
 #include <WebServer.h>         // Lightweight HTTP web server for ESP32
 
 // ================================================================
-//  USER CONFIGURATION (MASTER DEVICE)
+//  USER CONFIGURATION (EDIT THIS FOR EACH SLAVE DEVICE)
 // ================================================================
 const char* ssid     = "YOUR_HOME_WIFI_NAME";      // <--- YOUR HOME WIFI NAME
 const char* password = "YOUR_HOME_WIFI_PASSWORD";  // <--- YOUR HOME WIFI PASSWORD
 
-// STATIC IP SETUP (Unique for every device!)
-// Example: Master=.50
-IPAddress local_IP(192, 168, 1, 50);      // <--- MASTER IP
+// STATIC IP SETUP (Must be unique for every device!)
+// Example: Master=.50, Bedroom=.51, Kitchen=.52
+IPAddress local_IP(192, 168, 1, 51);      // <--- CHANGE THIS (Unique IP)
 IPAddress gateway(192, 168, 1, 1);        // <--- YOUR ROUTER IP
-IPAddress subnet(255, 255, 255, 0);
+IPAddress subnet(255, 255, 255, 0);       // <--- YOUR SUBNET MASK
 
-// DEVICE IDENTIFICATION
-const char* deviceLocation = "Pat - Master (Living Room)";
+// DEVICE IDENTIFICATION (MULTI-ROOM SUPPORT)
+// Change this string on each device: e.g. "Pat - Bedroom", "Pat - Living Room", etc.
+const char* deviceLocation = "Pat - Bedroom";
 // ================================================================
 
 // ---------- RGB LED pins (ALERT RGB) ----------
@@ -189,94 +190,18 @@ void handleData() {
   json += "\"location\":\"" + String(deviceLocation) + "\"";
   json += "}";
 
-  // Allow localhost/other IPs to fetch this too
+  // !!! IMPORTANT CHANGE: Allow Cross-Origin Requests !!!
+  // This allows the Master Dashboard to read data from this Slave
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.send(200, "application/json", json);
 }
 
 void handleRoot() {
-  // !!! MASTER DASHBOARD HTML !!!
-  String html = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home Environment Monitor</title>
-  <style>
-    body { font-family: sans-serif; background: #222; color: #fff; text-align: center; }
-    h1 { color: #4db8ff; }
-    #dashboard { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .card { background: #333; padding: 20px; border-radius: 10px; width: 220px; text-align: left; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
-    .loc { font-size: 1.2em; font-weight: bold; border-bottom: 2px solid #555; margin-bottom: 10px; color: #ffa500; }
-    .val-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-    .val { font-weight: bold; font-size: 1.1em; }
-    .status { font-size: 0.8em; color: #888; text-align: right; margin-top: 10px; }
-  </style>
-</head>
-<body>
-  <h1>Whole Home Monitor</h1>
-  <div id="dashboard">
-    </div>
-
-  <script>
-    // ==========================================================
-    // CONFIG: LIST ALL YOUR ESP32 IP ADDRESSES HERE
-    // ==========================================================
-    const sensors = [
-      { ip: '192.168.1.50', name: 'Master' }, 
-      { ip: '192.168.1.51', name: 'Bedroom' },
-      { ip: '192.168.1.52', name: 'Kitchen' }
-    ];
-
-    function createCard(s) {
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.id = 'card-' + s.ip;
-      div.innerHTML = `
-        <div class="loc" id="loc-${s.ip}">${s.name}</div>
-        <div class="val-row"><span>Temp:</span> <span class="val" id="t-${s.ip}">--</span> °C</div>
-        <div class="val-row"><span>Hum:</span> <span class="val" id="h-${s.ip}">--</span> %</div>
-        <div class="val-row"><span>Pres:</span> <span class="val" id="p-${s.ip}">--</span> kPa</div>
-        <div class="status" id="st-${s.ip}">Connecting...</div>
-      `;
-      document.getElementById('dashboard').appendChild(div);
-    }
-
-    function fetchSensor(s) {
-      fetch('http://' + s.ip + '/data')
-        .then(r => r.json())
-        .then(d => {
-           document.getElementById('t-' + s.ip).textContent = d.tempC.toFixed(1);
-           document.getElementById('h-' + s.ip).textContent = d.hum.toFixed(1);
-           document.getElementById('p-' + s.ip).textContent = d.kpa.toFixed(2);
-           document.getElementById('loc-' + s.ip).textContent = d.location; // Use actual device name
-           const st = document.getElementById('st-' + s.ip);
-           st.textContent = "Online";
-           st.style.color = "#0f0";
-        })
-        .catch(e => {
-           const st = document.getElementById('st-' + s.ip);
-           st.textContent = "Offline";
-           st.style.color = "#f00";
-        });
-    }
-
-    // Init
-    sensors.forEach(s => createCard(s));
-
-    // Loop
-    function updateAll() {
-      sensors.forEach(s => fetchSensor(s));
-    }
-    
-    setInterval(updateAll, 2000); // Update every 2 seconds
-    updateAll();
-  </script>
-</body>
-</html>
-)rawliteral";
-
+  // Simple status page for slave devices
+  String html = "<html><body><h1>" + String(deviceLocation) + "</h1>";
+  html += "<p>Mode: SLAVE NODE</p>";
+  html += "<p>IP Address: " + WiFi.localIP().toString() + "</p>";
+  html += "<p>View the full dashboard on the Master device.</p></body></html>";
   server.send(200, "text/html", html);
 }
 
@@ -604,7 +529,7 @@ void setup() {
   initSensorsAndDisplay();
 
   Serial.println();
-  Serial.println("=== ESP32 BME280 Monitor (MASTER) ===");
+  Serial.println("=== ESP32 BME280 Monitor (SLAVE) ===");
   Serial.print("Device location: ");
   Serial.println(deviceLocation);
   Serial.print("Connected to SSID: ");
